@@ -1,0 +1,11 @@
+# Backups y temporales
+*.bak
+*.bak-*
+*.save
+*.swp
+*~
+
+# Configs regeneradas por el CLI/Quickshell
+files/config-caelestia/colors.json
+files/config-caelestia/colors.css
+files/config-caelestia/colors-caelestia.json

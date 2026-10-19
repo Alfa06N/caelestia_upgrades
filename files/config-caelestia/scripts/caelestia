@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+
+# Si el primer argumento es "wallpaper", llamamos a nuestro script
+if [ "$1" == "wallpaper" ]; then
+    # El flag -p o -r lo ignoramos por ahora y pasamos la ruta ($3 suele ser la ruta en Caelestia)
+    # Buscamos en los argumentos cuál es la ruta del archivo (que termine en .jpg, .png, etc)
+    for arg in "$@"; do
+        if [[ $arg == *.jpg || $arg == *.png || $arg == *.jpeg || $arg == *.webp ]]; then
+            ~/.config/caelestia/scripts/wallpaper "$arg"
+            exit 0
+        fi
+    done
+fi

@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+
+WALLPAPER_PATH="$1"
+for arg in "$@"; do
+    if [[ $arg == *.jpg || $arg == *.png || $arg == *.jpeg || $arg == *.webp ]]; then
+        WALLPAPER_PATH="$arg"
+        break
+    fi
+done
+
+if [ -z "$WALLPAPER_PATH" ]; then exit 1; fi
+
+echo "$WALLPAPER_PATH" > /home/alfa06n/.local/state/caelestia/wallpaper/path.txt
+
+# 2. Cambiar fondo (Transición suave)
+caelestia wallpaper -f "$WALLPAPER_PATH" -N &
+
+# 2. Prioridad 2: El fondo visual
+# Subimos el step para que la transición de swww sea casi instantánea
+swww img "$WALLPAPER_PATH" --transition-type fade --transition-step 150 --transition-fps 120 &
+
+# 3. Prioridad 3: Terminal y Otros (En segundo plano total)
+# Movemos esto a una subshell que no bloquea nada
+{
+    wal -i "$WALLPAPER_PATH" -n -q -t
+    cp ~/.cache/wal/colors.json ~/.config/caelestia/colors.json
+} &
+
+disown

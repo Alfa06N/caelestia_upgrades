@@ -1,0 +1,5 @@
+{
+    "wallpaper": {
+        "postHook": "awww img \"$WALLPAPER_PATH\" --transition-type none"
+    }
+}
