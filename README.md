@@ -9,7 +9,24 @@ sobre Arch Linux, para que sobrevivan a las actualizaciones del sistema.
 |------|--------|
 | `files/*.qml` | Los 9 archivos del shell (`caelestia-shell`) que he modificado. |
 | `files/config-caelestia/` | Mis configs de usuario (`~/.config/caelestia`: `hypr-user.conf`, `shell.json`, `monitors/`, etc.). |
+| `files/dots-caelestia/` | Respaldo de los dotfiles de Hyprland tocados (`btop`, `fish`, `hypr`, scripts). Repo completo en `caelestia_dots`. |
 | `sync-upstream.sh` | Regenera el override del shell desde el paquete + reaplica mis parches. |
+
+## Repos relacionados
+
+| Repo | Ruta local | Qué contiene |
+|------|-----------|--------------|
+| [caelestia_dots](https://github.com/Alfa06N/caelestia_dots) | `~/.local/share/caelestia` (symlink desde `~/.config/hypr`) | Mirror de los dotfiles completos de Caelestia. `origin` = mi repo, `upstream` = oficial. |
+| `~/.config/caelestia` | — | Configs de usuario; repo git local (sin remoto). |
+
+Para actualizar los dotfiles desde el upstream oficial:
+
+```bash
+cd ~/.local/share/caelestia
+git fetch upstream
+git merge upstream/main   # resolver conflictos si los hay
+git push origin main      # subir a mi repo
+```
 
 ## Por qué es necesario
 
