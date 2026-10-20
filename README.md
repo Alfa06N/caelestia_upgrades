@@ -172,6 +172,49 @@ reconectaban al usarlos. Dos causas:
 `sync-upstream.sh` aplica ambos si hay sudo disponible (o imprime los comandos
 a mano). Ver `files/etc-bluetooth/main.conf.README`.
 
+## Gestor de archivos: Thunar como predeterminado
+
+Dos mecanismos distintos, ambos necesarios:
+
+1. **MIME `inode/directory`.** El default estaba en `kitty-open.desktop` (la
+   terminal), y Dolphin aparecia por ser KDE. Se fija en
+   `~/.config/mimeapps.list`:
+
+   ```
+   [Default Applications]
+   inode/directory=thunar.desktop
+
+   [Added Associations]
+   inode/directory=thunar.desktop;
+   ```
+
+   Aplica a Telegram (Qt), `xdg-open`, links `file://`, etc.
+
+2. **D-Bus `org.freedesktop.FileManager1`.** Chromium/Brave NO usa MIME para
+   "Mostrar en carpeta": llama a este nombre por D-Bus. Dos paquetes lo
+   reclaman (`dolphin --daemon` y `Thunar --gapplication-service`); ganaba
+   Dolphin.
+
+   El bus usa **dbus-broker**, que solo busca servicios en `XDG_DATA_DIRS`
+   (`/usr/local/share:/usr/share`) y **no** lee `~/.local/share`. Por eso el
+   override va a `/usr/local/share/dbus-1/services/` (mayor prioridad que
+   `/usr/share`, pacman no lo toca):
+
+   ```bash
+   sudo install -D -m 644 files/usr-local-share/dbus-1/services/org.freedesktop.FileManager1.service \
+        /usr/local/share/dbus-1/services/org.freedesktop.FileManager1.service
+   systemctl --user restart dbus-broker
+   ```
+
+   Notas:
+   - Requiere **reiniciar el broker** (o cerrar sesion) para recargar servicios.
+   - El "Guardar archivo" de Brave usa el **portal** `FileChooser` (gtk): es lo
+     correcto, no se toca.
+   - El dialogo "Save Image" de Telegram es propio de Telegram, no configurable.
+
+`sync-upstream.sh` instala ambos si hay sudo. Dolphin se **conserva** instalado
+(solo se le quita la prioridad en FileManager1).
+
 ## Restaurar desde cero (equipo nuevo)
 
 ```bash

@@ -73,6 +73,7 @@ done < <(find "$SHELL_FILES" -type f \
     -not -path "*/config-local-bin/*" \
     -not -path "*/etc-udev/*" \
     -not -path "*/etc-bluetooth/*" \
+    -not -path "*/usr-local-share/*" \
     -not -path "*/dots-caelestia/*" -print0)
 
 # 3. Instalar el agente Bluetooth propio y su servicio systemd de usuario.
@@ -134,6 +135,39 @@ if [[ -f /etc/bluetooth/main.conf ]]; then
         fi
     else
         echo "--> BlueZ IdleTimeout ya esta en 0, sin cambios"
+    fi
+fi
+
+# 6. Thunar como gestor de archivos por D-Bus (org.freedesktop.FileManager1).
+#    dbus-broker solo lee XDG_DATA_DIRS (/usr/local/share:/usr/share), NO
+#    ~/.local/share, por eso el override va a /usr/local/share.
+FM1_SRC="$SHELL_FILES/usr-local-share/dbus-1/services/org.freedesktop.FileManager1.service"
+FM1_DST="/usr/local/share/dbus-1/services/org.freedesktop.FileManager1.service"
+if [[ -f "$FM1_SRC" ]]; then
+    echo "--> Instalando override D-Bus FileManager1 -> Thunar"
+    if [[ $DRY_RUN -eq 0 ]]; then
+        if sudo -n true 2>/dev/null || [[ -w /usr/local/share ]]; then
+            sudo install -D -m 644 "$FM1_SRC" "$FM1_DST"
+            systemctl --user restart dbus-broker 2>/dev/null || true
+        else
+            echo "    AVISO: se requiere sudo. Ejecuta manualmente:"
+            echo "      sudo install -D -m 644 '$FM1_SRC' '$FM1_DST'"
+            echo "      systemctl --user restart dbus-broker"
+        fi
+    else
+        echo "    (dry-run) install override FileManager1 + restart dbus-broker"
+    fi
+fi
+
+# 7. mimeapps.list (inode/directory -> Thunar etc.) — config de usuario.
+MIME_SRC="$SHELL_FILES/config-caelestia/mimeapps.list"
+if [[ -f "$MIME_SRC" ]]; then
+    echo "--> Instalando mimeapps.list de usuario"
+    if [[ $DRY_RUN -eq 0 ]]; then
+        mkdir -p "$HOME/.config"
+        install -m 644 "$MIME_SRC" "$HOME/.config/mimeapps.list"
+    else
+        echo "    (dry-run) install mimeapps.list -> ~/.config/mimeapps.list"
     fi
 fi
 

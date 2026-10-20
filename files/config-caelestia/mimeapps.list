@@ -1,0 +1,20 @@
+[Default Applications]
+inode/directory=thunar.desktop
+image/jpeg=swappy.desktop
+text/html=google-chrome.desktop
+x-scheme-handler/http=google-chrome.desktop
+x-scheme-handler/https=google-chrome.desktop
+x-scheme-handler/about=google-chrome.desktop
+x-scheme-handler/unknown=google-chrome.desktop
+x-scheme-handler/mailto=brave-browser.desktop
+x-scheme-handler/discord-409416265891971072=discord-409416265891971072.desktop
+x-scheme-handler/pttp=CiscoPacketTracerPtsa-9.0.0.desktop
+application/x-pka=CiscoPacketTracer-9.0.0.desktop
+application/x-pkt=CiscoPacketTracer-9.0.0.desktop
+application/x-pkz=CiscoPacketTracer-9.0.0.desktop
+application/x-pksz=CiscoPacketTracer-9.0.0.desktop
+
+[Added Associations]
+inode/directory=thunar.desktop;
+image/jpeg=brave-browser.desktop;org.gnome.gThumb.desktop;swappy.desktop;
+image/png=swappy.desktop;
