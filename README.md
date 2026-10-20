@@ -102,6 +102,40 @@ Y editar `files/...` a mano para integrar la mejora, luego commit + push.
 - `modules/nexus/pages/network/NetworkDetailPage.qml` — estado de error al "Forget".
 - `modules/nexus/pages/network/AddNetworkPage.qml` — callbacks de limpieza.
 - `modules/sidebar/NotifDock.qml` — limpieza masiva de notificaciones.
+- `modules/nexus/pages/bluetooth/BluetoothPairing.qml` — conexión + `trusted` automático tras emparejar (con fallback).
+
+## Gestión de energía (perfiles)
+
+Los botones de "Modos de Rendimiento" del shell usan `Quickshell.Services.UPower`
+→ **power-profiles-daemon** (ppd) por D-Bus. Por eso **TLP se desactivó** (ambos
+no pueden coexistir: pelean por `platform_profile` y los governors).
+
+Estado actual del sistema (no versionado, es config de root):
+
+```bash
+sudo systemctl disable --now tlp                 # TLP apagado
+sudo systemctl unmask power-profiles-daemon
+sudo systemctl enable --now power-profiles-daemon
+powerprofilesctl list                            # performance/balanced/power-saver
+```
+
+Respaldo local: `~/tlp.conf.bak-<fecha>` y `~/tlp-migration.log`.
+
+Revertir (si hiciera falta):
+
+```bash
+sudo systemctl disable --now power-profiles-daemon
+sudo systemctl enable --now tlp
+sudo cp ~/tlp.conf.bak-<fecha> /etc/tlp.conf
+```
+
+## Agente Bluetooth
+
+`caelestia-bt-agent` (Python/dbus, capacidad `NoInputNoOutput`) permite emparejar
+dispositivos "just works" desde la GUI de Caelestia, que no trae agente propio.
+Se instala como servicio systemd de usuario (`caelestia-bt-agent.service`), se
+habilita en el login y `sync-upstream.sh` lo reinstala. Cero dependencias nuevas
+(usa `python-dbus`/`python-gobject` ya presentes).
 
 ## Restaurar desde cero (equipo nuevo)
 
