@@ -1,0 +1,2 @@
+# Realtek 0bda:c123 Bluetooth Radio — evitar que USB autosuspend corte el enlace
+ACTION=="add|change", SUBSYSTEM=="usb", ATTR{idVendor}=="0bda", ATTR{idProduct}=="c123", ATTR{power/control}="on", ATTR{power/autosuspend_delay_ms}="-1"

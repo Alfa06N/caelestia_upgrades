@@ -1,0 +1,16 @@
+# Aplicar a /etc/bluetooth/main.conf (seccion [General], requiere sudo)
+#
+# Anadir la linea siguiente bajo [General] para que BlueZ NUNCA cierre los
+# enlaces por inactividad (evita desconexiones de teclado/raton en reposo):
+#
+#     IdleTimeout = 0
+#
+# Aplicar:
+#   sudo systemctl restart bluetooth
+#
+# Verificacion:
+#   grep -n '^IdleTimeout' /etc/bluetooth/main.conf   # -> IdleTimeout = 0
+#
+# Nota: el autosuspend del radio Realtek ya se corrige con la regla udev
+# files/etc-udev/50-bluetooth-no-autosuspend.rules. Este ajuste es el refuerzo
+# a nivel BlueZ (Opcion C).

@@ -17,7 +17,23 @@ AGENT_CAPABILITY = "NoInputNoOutput"
 ADAPTER = "/org/bluez/hci0"
 
 
+def _mark_trusted(bus, device_path):
+    """Persist Trusted=true for a device so it reconnects without prompting."""
+    try:
+        props = dbus.Interface(
+            bus.get_object("org.bluez", device_path), "org.freedesktop.DBus.Properties"
+        )
+        props.Set("org.bluez.Device1", "Trusted", dbus.Boolean(True))
+        print(f"Trusted=true set for {device_path}", flush=True)
+    except dbus.exceptions.DBusException as exc:
+        print(f"Failed to set Trusted for {device_path}: {exc}", flush=True)
+
+
 class Agent(dbus.service.Object):
+    def __init__(self, bus, path):
+        super().__init__(bus, path)
+        self._bus = bus
+
     @dbus.service.method("org.bluez.Agent1", in_signature="", out_signature="")
     def Release(self):
         print("Release", flush=True)
@@ -25,6 +41,7 @@ class Agent(dbus.service.Object):
     @dbus.service.method("org.bluez.Agent1", in_signature="o", out_signature="")
     def RequestAuthorization(self, device):
         print(f"RequestAuthorization {device} -> allow", flush=True)
+        _mark_trusted(self._bus, device)
 
     @dbus.service.method("org.bluez.Agent1", in_signature="os", out_signature="")
     def AuthorizeService(self, device, uuid):
@@ -33,6 +50,7 @@ class Agent(dbus.service.Object):
     @dbus.service.method("org.bluez.Agent1", in_signature="ou", out_signature="")
     def RequestConfirmation(self, device, passkey):
         print(f"RequestConfirmation {device} -> allow", flush=True)
+        _mark_trusted(self._bus, device)
 
     @dbus.service.method("org.bluez.Agent1", in_signature="o", out_signature="u")
     def RequestPasskey(self, device):

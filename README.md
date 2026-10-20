@@ -137,6 +137,41 @@ Se instala como servicio systemd de usuario (`caelestia-bt-agent.service`), se
 habilita en el login y `sync-upstream.sh` lo reinstala. Cero dependencias nuevas
 (usa `python-dbus`/`python-gobject` ya presentes).
 
+Al confirmar el emparejamiento, el agente escribe `Trusted=true` vía D-Bus, así
+los dispositivos reconectan solos sin marcarlos a mano.
+
+## Bluetooth: evitar desconexiones en reposo (Opcion C)
+
+Sintoma: el teclado/raton se "desconectaban" a los ~20s de inactividad y
+reconectaban al usarlos. Dos causas:
+
+1. **Autosuspend del radio USB.** El adaptador Realtek `0bda:c123` tenia
+   `power/control = auto` con `autosuspend_delay_ms = 2000` (2s), y
+   `btusb enable_autosuspend=Y`. En reposo el stack USB suspendia el radio y
+   cortaba el enlace.
+
+   Fix por regla udev `files/etc-udev/50-bluetooth-no-autosuspend.rules`:
+
+   ```bash
+   sudo install -m 644 files/etc-udev/50-bluetooth-no-autosuspend.rules \
+        /etc/udev/rules.d/50-bluetooth-no-autosuspend.rules
+   sudo udevadm control --reload-rules
+   sudo udevadm trigger --action=add --subsystem-match=usb
+   cat /sys/bus/usb/devices/1-2/power/control   # -> on
+   ```
+
+2. **Cierre por inactividad de BlueZ.** `IdleTimeout` sin fijar. Se pone a `0`
+   (nunca cerrar enlaces) en `/etc/bluetooth/main.conf` bajo `[General]`:
+
+   ```bash
+   sudo cp -a /etc/bluetooth/main.conf /etc/bluetooth/main.conf.bak-$(date +%F-%H%M%S)
+   sudo sed -i '/^\[General\]/a IdleTimeout = 0' /etc/bluetooth/main.conf
+   sudo systemctl restart bluetooth
+   ```
+
+`sync-upstream.sh` aplica ambos si hay sudo disponible (o imprime los comandos
+a mano). Ver `files/etc-bluetooth/main.conf.README`.
+
 ## Restaurar desde cero (equipo nuevo)
 
 ```bash

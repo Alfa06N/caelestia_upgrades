@@ -71,6 +71,8 @@ done < <(find "$SHELL_FILES" -type f \
     -not -path "*/config-caelestia/*" \
     -not -path "*/config-systemd-user/*" \
     -not -path "*/config-local-bin/*" \
+    -not -path "*/etc-udev/*" \
+    -not -path "*/etc-bluetooth/*" \
     -not -path "*/dots-caelestia/*" -print0)
 
 # 3. Instalar el agente Bluetooth propio y su servicio systemd de usuario.
@@ -86,6 +88,52 @@ if [[ -f "$BT_AGENT" ]]; then
         systemctl --user enable --now caelestia-bt-agent.service
     else
         echo "    (dry-run) install agente + servicio y systemctl --user enable --now"
+    fi
+fi
+
+# 4. Sistema: reglas udev y ajustes de BlueZ (requieren sudo).
+UDEV_SRC="$SHELL_FILES/etc-udev/50-bluetooth-no-autosuspend.rules"
+UDEV_DST="/etc/udev/rules.d/50-bluetooth-no-autosuspend.rules"
+if [[ -f "$UDEV_SRC" ]]; then
+    echo "--> Instalando regla udev (bluetooth sin autosuspend)"
+    if [[ $DRY_RUN -eq 0 ]]; then
+        if [[ -w /etc/udev/rules.d ]] || sudo -n true 2>/dev/null; then
+            sudo install -m 644 "$UDEV_SRC" "$UDEV_DST"
+            sudo udevadm control --reload-rules
+            sudo udevadm trigger --action=add --subsystem-match=usb
+        else
+            echo "    AVISO: se requiere sudo. Ejecuta manualmente:"
+            echo "      sudo install -m 644 '$UDEV_SRC' '$UDEV_DST'"
+            echo "      sudo udevadm control --reload-rules"
+            echo "      sudo udevadm trigger --action=add --subsystem-match=usb"
+        fi
+    else
+        echo "    (dry-run) install regla udev + udevadm reload/trigger"
+    fi
+fi
+
+# 5. BlueZ: IdleTimeout = 0 en /etc/bluetooth/main.conf (desactiva cierre por inactividad).
+if [[ -f /etc/bluetooth/main.conf ]]; then
+    if ! grep -qE '^\s*IdleTimeout\s*=\s*0\b' /etc/bluetooth/main.conf; then
+        echo "--> Ajustando BlueZ IdleTimeout = 0"
+        if [[ $DRY_RUN -eq 0 ]]; then
+            if sudo -n true 2>/dev/null || [[ -w /etc/bluetooth/main.conf ]]; then
+                sudo cp -a /etc/bluetooth/main.conf "/etc/bluetooth/main.conf.bak-$(date +%Y%m%d-%H%M%S)"
+                if grep -qE '^\s*#?\s*IdleTimeout' /etc/bluetooth/main.conf; then
+                    sudo sed -i 's/^\s*#\?\s*IdleTimeout.*/IdleTimeout = 0/' /etc/bluetooth/main.conf
+                else
+                    sudo sed -i '/^\[General\]/a IdleTimeout = 0' /etc/bluetooth/main.conf
+                fi
+                sudo systemctl restart bluetooth
+            else
+                echo "    AVISO: se requiere sudo. Anade 'IdleTimeout = 0' bajo [General] en"
+                echo "      /etc/bluetooth/main.conf y ejecuta: sudo systemctl restart bluetooth"
+            fi
+        else
+            echo "    (dry-run) IdleTimeout = 0 + systemctl restart bluetooth"
+        fi
+    else
+        echo "--> BlueZ IdleTimeout ya esta en 0, sin cambios"
     fi
 fi
 
