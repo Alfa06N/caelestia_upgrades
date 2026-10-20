@@ -67,7 +67,27 @@ while IFS= read -r -d '' file; do
         mkdir -p "$OVERRIDE/$(dirname "$rel")"
         cp -a "$file" "$OVERRIDE/$rel"
     fi
-done < <(find "$SHELL_FILES" -type f -not -path "*/config-caelestia/*" -print0)
+done < <(find "$SHELL_FILES" -type f \
+    -not -path "*/config-caelestia/*" \
+    -not -path "*/config-systemd-user/*" \
+    -not -path "*/config-local-bin/*" \
+    -not -path "*/dots-caelestia/*" -print0)
+
+# 3. Instalar el agente Bluetooth propio y su servicio systemd de usuario.
+BT_AGENT="$SHELL_FILES/config-local-bin/caelestia-bt-agent"
+BT_SERVICE="$SHELL_FILES/config-systemd-user/caelestia-bt-agent.service"
+if [[ -f "$BT_AGENT" ]]; then
+    echo "--> Instalando agente Bluetooth (caelestia-bt-agent)"
+    if [[ $DRY_RUN -eq 0 ]]; then
+        mkdir -p "$HOME/.local/bin" "$HOME/.config/systemd/user"
+        install -m 755 "$BT_AGENT" "$HOME/.local/bin/caelestia-bt-agent"
+        install -m 644 "$BT_SERVICE" "$HOME/.config/systemd/user/caelestia-bt-agent.service"
+        systemctl --user daemon-reload
+        systemctl --user enable --now caelestia-bt-agent.service
+    else
+        echo "    (dry-run) install agente + servicio y systemctl --user enable --now"
+    fi
+fi
 
 echo
 if [[ $WARN -eq 1 ]]; then

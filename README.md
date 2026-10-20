@@ -10,6 +10,8 @@ sobre Arch Linux, para que sobrevivan a las actualizaciones del sistema.
 | `files/*.qml` | Los 9 archivos del shell (`caelestia-shell`) que he modificado. |
 | `files/config-caelestia/` | Mis configs de usuario (`~/.config/caelestia`: `hypr-user.conf`, `shell.json`, `monitors/`, etc.). |
 | `files/dots-caelestia/` | Respaldo de los dotfiles de Hyprland tocados (`btop`, `fish`, `hypr`, scripts). Repo completo en `caelestia_dots`. |
+| `files/config-systemd-user/` | Servicios systemd de usuario (`caelestia-bt-agent.service`). |
+| `files/config-local-bin/` | Scripts propios (`caelestia-bt-agent`, agente BlueZ en Python). |
 | `sync-upstream.sh` | Regenera el override del shell desde el paquete + reaplica mis parches. |
 
 ## Repos relacionados
