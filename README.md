@@ -7,19 +7,20 @@ sobre Arch Linux, para que sobrevivan a las actualizaciones del sistema.
 
 | Ruta | Qué es |
 |------|--------|
-| `files/*.qml` | Los 9 archivos del shell (`caelestia-shell`) que he modificado. |
-| `files/config-caelestia/` | Mis configs de usuario (`~/.config/caelestia`: `hypr-user.conf`, `shell.json`, `monitors/`, etc.). |
-| `files/dots-caelestia/` | Respaldo de los dotfiles de Hyprland tocados (`btop`, `fish`, `hypr`, scripts). Repo completo en `caelestia_dots`. |
-| `files/config-systemd-user/` | Servicios systemd de usuario (`caelestia-bt-agent.service`). |
+| `files/<subdir>/*.qml` | Los 9 archivos del shell (`caelestia-shell`) que he modificado. |
+| `files/config-caelestia/` | Mis configs de usuario (`~/.config/caelestia`: `shell.json`, `monitors/`, `mimeapps.list`, etc.). |
+| `files/dots-caelestia/` | Mis personalizaciones sobre los dotfiles de Hyprland (`config-caelestia/*.lua`, `config-hypr/hypridle.conf`, `config-systemd-user/…`, `btop`, `fish`). |
+| `files/config-systemd-user/` | Servicios systemd de usuario propios (`caelestia-bt-agent.service`). |
 | `files/config-local-bin/` | Scripts propios (`caelestia-bt-agent`, agente BlueZ en Python). |
-| `sync-upstream.sh` | Regenera el override del shell desde el paquete + reaplica mis parches. |
+| `sync-upstream.sh` | Regenera el override del **shell** desde el paquete + reaplica mis parches QML. |
+| `sync-dots.sh` | Restaura/guarda mis personalizaciones sobre los **dotfiles de Hyprland** (`--save` para snapshot). |
 
 ## Repos relacionados
 
 | Repo | Ruta local | Qué contiene |
 |------|-----------|--------------|
 | [caelestia_dots](https://github.com/Alfa06N/caelestia_dots) | `~/.local/share/caelestia` (symlink desde `~/.config/hypr`) | Mirror de los dotfiles completos de Caelestia. `origin` = mi repo, `upstream` = oficial. |
-| `~/.config/caelestia` | — | Configs de usuario; repo git local (sin remoto). |
+| `~/.config/caelestia` | — | Configs de usuario (incl. `hypr-vars.lua`/`hypr-user.lua`); repo git local (sin remoto). |
 
 Para actualizar los dotfiles desde el upstream oficial:
 
@@ -29,6 +30,11 @@ git fetch upstream
 git merge upstream/main   # resolver conflictos si los hay
 git push origin main      # subir a mi repo
 ```
+
+> **Nota (0.56+):** los dotfiles migraron de Hyprland `.conf` (hyprlang) a
+> **Lua**. El entry ahora es `hypr/hyprland.lua`; ya no existe `hyprland.conf`
+> real (Hyprland regenera un stub de aviso si no encuentra config válido).
+> Ver la sección "Migración a Lua" más abajo.
 
 ## Por qué es necesario
 
@@ -50,19 +56,23 @@ completa a partir del paquete actualizado cuando toque.
 ## Flujo tras actualizar el sistema
 
 ```bash
-sudo pacman -Syu                      # actualiza caelestia-shell, quickshell, hyprland, etc.
-~/caelestia_upgrades/sync-upstream.sh # paquete nuevo + mis parches encima
+sudo pacman -Syu                       # actualiza caelestia-shell, quickshell, hyprland, etc.
+~/caelestia_upgrades/sync-upstream.sh  # shell: paquete nuevo + mis parches QML encima
+~/caelestia_upgrades/sync-dots.sh      # dots Hyprland: restaura mis personalizaciones .lua
 qs -c caelestia kill; sleep 0.6; caelestia shell -d
+hyprctl reload
 ```
 
 Antes de aplicar, se puede probar sin tocar nada:
 
 ```bash
 ~/caelestia_upgrades/sync-upstream.sh --dry-run
+~/caelestia_upgrades/sync-dots.sh --dry-run
 ```
 
-El script hace un backup del override actual en `~/.config/quickshell/caelestia.bak-<fecha>`
-antes de regenerarlo.
+`sync-upstream.sh` hace un backup del override actual en
+`~/.config/quickshell/caelestia.bak-<fecha>` antes de regenerarlo.
+`sync-dots.sh` hace backup `.bak-<fecha>` de cada personalización que sobrescribe.
 
 ### Fusionar si hay conflictos
 
@@ -80,16 +90,68 @@ diff ~/caelestia_upgrades/files/services/Nmcli.qml \
 
 Y editar `files/...` a mano para integrar la mejora, luego commit + push.
 
-## Configs de Hyprland / usuario
+## Migración de Hyprland a Lua (0.56+)
 
-- `~/.config/caelestia/hypr-user.conf` es **mío** y se carga **al final** en
-  `hyprland.conf`, así que mis binds ganan sobre los dotfiles oficiales sin
-  tocarlos. Ejemplo: el bind `Super+Space` (launcher) vive ahí.
-- Estas configs **no las toca pacman ni los dotfiles oficiales**, así que
-  sobreviven a las actualizaciones sin hacer nada. Se guardan aquí como respaldo.
-- El keybind oficial en `~/.local/share/caelestia/hypr/hyprland/keybinds.conf`
-  se dejó idéntico a upstream (sin mis cambios) para que `git pull` de los
-  dotfiles no dé conflictos.
+Desde Hyprland 0.55 el lenguaje de configuración pasó de **hyprlang** (`.conf`)
+a **Lua**. En los dotfiles de Caelestia 0.56+:
+
+- El entry es `~/.config/hypr/hyprland.lua` (parte del repo de dots).
+- Ese entry carga, en orden, `hypr/variables.lua` + `hypr/hyprland/*.lua`, y
+  **al final** `require("hypr-user")` y los overrides de `hypr-vars`.
+- Ya **no existe** `hyprland.conf` real. Si Hyprland no encuentra un config
+  válido, **regenera un `hyprland.conf` stub** (`autogenerated = 1`) con binds
+  mínimos y muestra el aviso *"You're using an autogenerated config!"*. Ese stub
+  es inofensivo una vez que `hyprland.lua` existe: Hyprland prefiere el `.lua`.
+
+**Mis personalizaciones** (no las toca `caelestia update`):
+
+| Archivo | Contenido |
+|---------|-----------|
+| `~/.config/caelestia/hypr-vars.lua` | Overrides de variables (apps por defecto, touchpad, `windowBorderSize`, `blurEnabled`, `kbLauncher`…). Se carga **antes** que las configs, así que pisa los valores de `variables.lua`. |
+| `~/.config/caelestia/hypr-user.lua` | Monitores, input, envs, window rules y binds personales. Se carga **al final** (gana sobre upstream). |
+| `~/.config/hypr/hypridle.conf` | hypridle personalizado (se lanza por servicio systemd, no por Lua). |
+
+Ambos `.lua` los **crea** el entry si no existen (vacíos), así que sobreviven a
+las actualizaciones. `sync-dots.sh` los respalda/restaura.
+
+Verificar sintaxis y estado tras un cambio:
+
+```bash
+luac -p ~/.config/caelestia/hypr-vars.lua ~/.config/caelestia/hypr-user.lua
+hyprctl getoption general:border_size   # p.ej. debe reflejar hypr-vars.lua
+hyprctl monitors                        # monitores personalizados
+hyprctl reload
+```
+
+> **Importante:** `hyprctl reload` recarga el Lua. Pero si la sesión viva
+> arrancó con el stub `.conf`, hay que **reiniciar Hyprland** (no basta reload)
+> para que tome `hyprland.lua`.
+
+### HyprMod no persiste en la config Lua
+
+HyprMod escribe `~/hypr/hyprland-gui.lua` (y aplica el cambio en caliente con
+`hyprctl`), pero **el entry `hyprland.lua` no carga ese archivo**, así que los
+cambios de HyprMod **se pierden al reiniciar**. Solución: llevar los ajustes a
+`~/.config/caelestia/hypr-vars.lua` (que sí se carga siempre). Ejemplo:
+
+```lua
+return {
+    windowBorderSize = 2,
+    blurEnabled      = false,
+}
+```
+
+`hyprland-gui.lua`/`hyprland-gui.conf` quedan ignorados (inofensivos).
+
+## Personalizaciones de Hyprland: por qué están a salvo
+
+- `hypr-vars.lua` y `hypr-user.lua` viven en `~/.config/caelestia/`, que **no
+  pertenece al repo de dots** y por tanto no lo toca `caelestia update` ni
+  pacman. Se guardan aquí como respaldo (`files/dots-caelestia/config-caelestia/`).
+- El entry oficial `hypr/hyprland.lua` (en el repo de dots) se dejó **idéntico a
+  upstream** para que `git merge upstream/main` no dé conflictos.
+- `fix_lag.sh` (Escritorio) quedó **deshabilitado** (`fix_lag.sh.disabled`): con
+  power-profiles-daemon ya no hace falta forzar el nivel de la GPU.
 
 ## Archivos del shell personalizados
 
@@ -220,7 +282,13 @@ Dos mecanismos distintos, ambos necesarios:
 ```bash
 git clone https://github.com/Alfa06N/caelestia_upgrades.git ~/caelestia_upgrades
 sudo pacman -S caelestia-shell caelestia-cli caelestia-meta quickshell-git hyprland
-~/caelestia_upgrades/sync-upstream.sh
+~/caelestia_upgrades/sync-upstream.sh   # shell
+~/caelestia_upgrades/sync-dots.sh       # personalizaciones Hyprland (.lua, hypridle, btop, fish)
 cp -a ~/caelestia_upgrades/files/config-caelestia/. ~/.config/caelestia/
 qs -c caelestia kill; sleep 0.6; caelestia shell -d
+hyprctl reload
 ```
+
+> Los dotfiles base de Hyprland (`~/.local/share/caelestia`) se instalan con
+> `caelestia install` / `caelestia update` (ver `manifest.toml`); ya no hay
+> `install.fish`. `sync-dots.sh` solo restaura las personalizaciones encima.
